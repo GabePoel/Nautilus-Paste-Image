@@ -1,9 +1,6 @@
 #!/usr/bin/python3
-"""
-A nautilus extension to allow for pasting images from the clipboard.
-"""
-
 import os
+
 from gi.repository import Nautilus, GObject, Gio, Gtk
 from urllib.parse import urlparse
 
@@ -15,8 +12,7 @@ def get_image_formats():
     Returns
     -------
     list
-        List of strings showing the extension of the image formats. Note that
-        this is not a list of the full mimetypes.
+        List of strings showing the extension of the image formats.
     """
     s = 'xclip -selection clip -t TARGETS -o'
     formats = os.popen(s).read().splitlines()
@@ -38,14 +34,23 @@ def paste_image(fp):
     if not os.path.isdir(fp):
         fp = os.path.dirname(fp)
     f = str(get_image_formats()[0])
-    fp = os.path.join(fp, 'Pasted Image.' + f)
+    ext = f
+    if 'png' in get_image_formats():
+        f = 'png'
+        ext = 'png'
+    elif 'jpeg' in get_image_formats():
+        f = 'jpeg'
+        ext = 'jpg'
+    if len(f) >= 2 and f[:2] == 'x-':
+        f = f[2:]
+    fp = os.path.join(fp, 'Pasted Image.' + ext)
     ogfp = fp
     n = 1
     while os.path.exists(fp):
-        fp = ogfp[:-4] + ' ' + str(n) + '.' + f
+        fp = ogfp[:-(len(ext) + 1)] + ' ' + str(n) + '.' + ext
         n += 1
     fs = '"' + fp + '"'
-    s = 'xclip -selection clipboard -t image/' + f + ' -o >' + fs
+    s = 'xclip -selection clipboard -t image/' + f + ' -o >' + fs + ' &'
     os.system(s)
 
 
@@ -146,4 +151,3 @@ class PasteMenuProvider(GObject.GObject, Nautilus.MenuProvider):
                                  tip='Paste image in %s' % file.get_name())
         item.connect('activate', self.background_activate_cb, file)
         return item,
-
