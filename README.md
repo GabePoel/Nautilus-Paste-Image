@@ -14,8 +14,12 @@ If for some reason the extension doesn't run after that then you might need to m
 
 You may need to also install xclip if you don't already have it.
 
-## Images
+## Screenshots
 
 ![Paste image into current folder.](./images/background-menu.png)
 
 ![Paste image into selected folders.](./images/directories-menu.png)
+
+## Known Issues
+
+There seems to be some problem pasting from Firefox with both xclip and wl-clipboard on Wayland. I _think_ this is a Firefox issue though?
