@@ -1,8 +1,17 @@
 #!/usr/bin/python3
-import os
 
+import os
 from gi.repository import Nautilus, GObject, Gio, Gtk
 from urllib.parse import urlparse
+
+def detect_x11():
+    """
+    Determines if x11 or Wayland is used. This prevents crashes when Nautilus
+    copies files on systems running x11.
+    """
+    s = "loginctl show-session $(awk '/tty/ {print $1}' <(loginctl)) -p Type | awk -F= '{print $2}'"
+    result = os.popen(s).read()
+    return 'x' in result
 
 
 def get_image_formats():
@@ -14,7 +23,9 @@ def get_image_formats():
     list
         List of strings showing the extension of the image formats.
     """
-    s = 'xclip -selection clip -t TARGETS -o'
+    if detect_x11():
+        return ['png']
+    s = 'xclip -selection clip -t TARGETS -o &'
     formats = os.popen(s).read().splitlines()
     image_types = [f[6:] for f in formats if f[:6] == 'image/']
     return image_types
@@ -63,6 +74,8 @@ def detect_image_in_clipboard():
     bool
         Whether or not there's a pasteable image in the clipboard.
     """
+    if detect_x11():
+        return True
     return len(get_image_formats()) > 0
 
 
