@@ -4,12 +4,16 @@ import os
 from gi.repository import Nautilus, GObject, Gio, Gtk
 from urllib.parse import urlparse
 
+
 def detect_x11():
     """
     Determines if x11 or Wayland is used. This prevents crashes when Nautilus
     copies files on systems running x11.
     """
-    s = "loginctl show-session $(awk '/tty/ {print $1}' <(loginctl)) -p Type | awk -F= '{print $2}'"
+    if detect_silverblue():
+        return True
+    s = "loginctl show-session $(awk '/tty/ {print $1}' <(loginctl)) -p Type"
+    s += " | awk -F= '{print $2}'"
     result = os.popen(s).read()
     return 'x' in result
 
@@ -26,9 +30,26 @@ def get_image_formats():
     if detect_x11():
         return ['png']
     s = 'xclip -selection clip -t TARGETS -o &'
+    if detect_silverblue():
+        home = os.path.expanduser('~')
+        script_path = os.path.join(
+            home,
+            '.local',
+            'share',
+            'nautilus-python',
+            'extensions',
+            'paste-image',
+            'immutable-preview.sh')
+        s = 'toolbox run sh ' + script_path
     formats = os.popen(s).read().splitlines()
     image_types = [f[6:] for f in formats if f[:6] == 'image/']
     return image_types
+
+
+def detect_silverblue():
+    s = 'hostnamectl | grep -i "Operating System"'
+    result = os.popen(s).read()
+    return 'silverblue' in result.lower() or 'kinoite' in result.lower()
 
 
 def paste_image(fp):
@@ -62,6 +83,17 @@ def paste_image(fp):
         n += 1
     fs = '"' + fp + '"'
     s = 'xclip -selection clipboard -t image/' + f + ' -o >' + fs + ' &'
+    if detect_silverblue():
+        home = os.path.expanduser('~')
+        script_path = os.path.join(
+            home,
+            '.local',
+            'share',
+            'nautilus-python',
+            'extensions',
+            'paste-image',
+            'immutable-paste.sh')
+        s = 'toolbox run sh ' + script_path + ' ' + f + ' ' + fs
     os.system(s)
 
 
@@ -83,6 +115,7 @@ class PasteProvider(GObject.GObject, Nautilus.LocationWidgetProvider):
     """
     Provider for the '<Shift><Ctrl>v' keyboard shortcut to paste an image.
     """
+
     def __init__(self):
         self._window = None
         self._uri = None
@@ -114,6 +147,7 @@ class PasteMenuProvider(GObject.GObject, Nautilus.MenuProvider):
     """
     Provider for the image pasting menu items.
     """
+
     def __init__(self):
         pass
 
